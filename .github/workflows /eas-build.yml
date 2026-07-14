@@ -1,0 +1,48 @@
+name: EAS Build
+on:
+  workflow_dispatch:
+    inputs:
+      build_id: { description: "Lovable build row id (UUID)", required: true }
+      app_name: { description: "App name", required: true }
+      site_url: { description: "Site URL", required: true }
+      format: { description: "APK or AAB", required: true }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npm install -g eas-cli
+      - name: Patch app.json
+        run: |
+          node -e "
+          const fs=require('fs');
+          const a=JSON.parse(fs.readFileSync('app.json','utf8'));
+          a.expo.name='${{ github.event.inputs.app_name }}';
+          a.expo.android.package='com.apkai.'+'${{ github.event.inputs.build_id }}'.replace(/-/g,'').slice(0,20);
+          a.expo.extra.siteUrl='${{ github.event.inputs.site_url }}';
+          fs.writeFileSync('app.json', JSON.stringify(a,null,2));
+          "
+      - name: Trigger EAS build
+        id: eas
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          PROFILE=$([ "${{ github.event.inputs.format }}" = "AAB" ] && echo "aab" || echo "apk")
+          OUT=$(eas build -p android --profile $PROFILE --non-interactive --no-wait --json)
+          echo "$OUT"
+          EAS_ID=$(echo "$OUT" | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d)[0].id))")
+          echo "eas_id=$EAS_ID" >> $GITHUB_OUTPUT
+      - name: Register EAS build id in Lovable
+        env:
+          WEBHOOK_URL: ${{ secrets.LOVABLE_WEBHOOK_URL }}
+          WEBHOOK_SECRET: ${{ secrets.LOVABLE_WEBHOOK_SECRET }}
+        run: |
+          BODY="{\"build_id\":\"${{ github.event.inputs.build_id }}\",\"eas_build_id\":\"${{ steps.eas.outputs.eas_id }}\",\"status\":\"in-queue\"}"
+          SIG=$(printf '%s' "$BODY" | openssl dgst -sha1 -hmac "$WEBHOOK_SECRET" -r | awk '{print $1}')
+          curl -fsS -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "expo-signature: sha1=$SIG" \
+            -d "$BODY"
