@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "{APP_NAME}",
+    "slug": "apk-ai-webview",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "apkai",
+    "android": {
+      "package": "{PACKAGE}",
+      "versionCode": 1
+    },
+    "extra": {
+      "siteUrl": "{SITE_URL}",
+      "eas": {
+        "projectId": "REMPLIR_APRES_eas_init"
+      }
+    },
+    "plugins": ["expo-router"]
+  }
+}
