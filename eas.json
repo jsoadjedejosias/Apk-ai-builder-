@@ -1,19 +1,7 @@
 {
-  "cli": {
-    "version": ">= 5.0.0"
-  },
+  "cli": { "version": ">= 5.9.0" },
   "build": {
-    "apk": {
-      "android": {
-        "buildType": "apk"
-      },
-      "distribution": "internal"
-    },
-    "aab": {
-      "android": {
-        "buildType": "app-bundle"
-      },
-      "distribution": "store"
-    }
+    "apk":       { "android": { "buildType": "apk" } },
+    "aab":       { "android": { "buildType": "app-bundle" } }
   }
 }
