@@ -1,32 +1,55 @@
 name: EAS Build
+
 on:
   workflow_dispatch:
     inputs:
-      build_id:  { required: true }
-      app_name:  { required: true }
-      site_url:  { required: true }
-      format:    { required: true }  # "APK" ou "AAB"
+      build_id:
+        description: 'ID du build'
+        required: true
+        default: '1'
+      app_name:
+        description: 'Nom de l’application'
+        required: true
+      site_url:
+        description: 'URL du site (ex: https://exemple.com)'
+        required: true
+      format:
+        description: 'Format (APK ou AAB)'
+        required: true
+        default: 'APK'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm install -g eas-cli
-      - run: npm install
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          npm install -g eas-cli
+          npm install
+
       - name: Patch app.json
         run: |
           node -e "
-            const fs=require('fs');
-            const a=JSON.parse(fs.readFileSync('app.json'));
-            a.expo.name='${{ inputs.app_name }}';
-            a.expo.extra={SITE_URL:'${{ inputs.site_url }}'};
-            fs.writeFileSync('app.json', JSON.stringify(a,null,2));
+            const fs = require('fs');
+            const a = JSON.parse(fs.readFileSync('app.json'));
+            a.expo.name = process.env.APP_NAME;
+            if (!a.expo.extra) a.expo.extra = {};
+            a.expo.extra.SITE_URL = process.env.SITE_URL;
+            fs.writeFileSync('app.json', JSON.stringify(a, null, 2));
           "
-      - name: Build
+        env:
+          APP_NAME: ${{ inputs.app_name }}
+          SITE_URL: ${{ inputs.site_url }}
+
+      - name: Build APK/AAB
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           PROFILE=$([ "${{ inputs.format }}" = "AAB" ] && echo "aab" || echo "apk")
-          eas build --platform android --profile $PROFILE --non-interactive --no-wait w  
+          eas build --platform android --profile $PROFILE --non-interactive --no-wait
