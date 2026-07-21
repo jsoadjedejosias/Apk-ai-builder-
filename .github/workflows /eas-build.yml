@@ -29,4 +29,4 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           PROFILE=$([ "${{ inputs.format }}" = "AAB" ] && echo "aab" || echo "apk")
-          eas build --platform android --profile $PROFILE --non-interactive --no-wait
+          eas build --platform android --profile $PROFILE --non-interactive --no-wait w  
